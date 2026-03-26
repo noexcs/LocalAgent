@@ -1,0 +1,95 @@
+<resources>
+    <string name="app_name">Local Agent</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Local Agent</string>
+    <string name="new_chat">新对话</string>
+    <string name="conversations">对话记录</string>
+    <string name="settings">设置</string>
+    <string name="message_hint">输入消息…</string>
+    <string name="send">发送</string>
+    <string name="thinking">思考中…</string>
+    <string name="empty_title">开始对话</string>
+    <string name="empty_subtitle">问我任何问题或给我一个任务</string>
+    <string name="tool_result">工具结果</string>
+    <string name="tap_expand">点击展开</string>
+    <string name="tap_collapse">点击收起</string>
+    <string name="copy">复制</string>
+    <string name="copied">已复制</string>
+    <string name="regenerate">重新生成</string>
+
+    <!-- Conversations drawer -->
+    <string name="no_conversations">暂无对话记录</string>
+    <string name="search_conversations">搜索对话…</string>
+    <string name="options">选项</string>
+    <string name="rename">重命名</string>
+    <string name="rename_conversation">重命名对话</string>
+    <string name="delete_conversation_title">删除对话？</string>
+    <string name="delete_conversation_message">"%1$s" 将被永久删除。</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="untitled">未命名</string>
+
+    <!-- Settings -->
+    <string name="save">保存</string>
+    <string name="unsaved_changes">有未保存的更改</string>
+    <string name="discard_title">放弃更改？</string>
+    <string name="discard_message">未保存的更改将会丢失。</string>
+    <string name="discard">放弃</string>
+    <string name="keep_editing">继续编辑</string>
+    <string name="settings_saved">设置已保存</string>
+
+    <string name="section_provider">API 提供商</string>
+    <string name="section_provider_subtitle">配置 AI 模型接口</string>
+    <string name="provider_label">提供商</string>
+    <string name="base_url_label">接口地址</string>
+    <string name="api_key_label">API 密钥</string>
+    <string name="model_label">模型</string>
+    <string name="show">显示</string>
+    <string name="hide">隐藏</string>
+
+    <string name="section_system_prompt">自定义系统提示词</string>
+    <string name="section_system_prompt_subtitle">在每次对话中添加到基础提示词之前</string>
+    <string name="system_prompt_placeholder">例如：始终使用中文回复…</string>
+
+    <string name="section_memory">记忆</string>
+    <string name="section_memory_subtitle">AI 在所有对话中携带的持久上下文，AI 也可以通过 update_memory 工具自行更新。</string>
+    <string name="memory_placeholder">记忆内容（markdown）…</string>
+
+    <string name="section_language">语言</string>
+    <string name="section_language_subtitle">应用显示语言</string>
+
+    <string name="section_tool_confirm">工具确认</string>
+    <string name="section_tool_confirm_subtitle">执行命令和写入文件前需要确认</string>
+    <string name="tool_confirm_ask">询问</string>
+    <string name="tool_confirm_always_allow">始终允许</string>
+    <string name="tool_approval_title">允许执行？</string>
+    <string name="tool_approval_allow">允许</string>
+    <string name="tool_approval_deny">拒绝</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_hans">简体中文</string>
+
+    <!-- Permission -->
+    <string name="permission_required">需要 Termux 权限</string>
+    <string name="grant_permission">授予权限</string>
+
+    <!-- Scheduled Tasks -->
+    <string name="scheduled_tasks">定时任务</string>
+    <string name="back">返回</string>
+    <string name="add_task">添加任务</string>
+    <string name="edit_task">编辑任务</string>
+    <string name="no_tasks">暂无定时任务</string>
+    <string name="task_title">标题</string>
+    <string name="task_frequency">频率</string>
+    <string name="task_prompt">提示词</string>
+    <string name="task_notify">消息推送</string>
+    <string name="freq_daily">每天</string>
+    <string name="freq_weekdays">工作日</string>
+    <string name="freq_weekly">每周</string>
+    <string name="freq_once">一次</string>
+    <string name="notification_channel_tasks">定时任务</string>
+    <string name="notification_channel_tasks_desc">来自定时 AI 任务的通知</string>
+    <string name="exact_alarm_permission_needed">请授予"闹钟和提醒"权限以启用定时任务</string>
+    <string name="task_running">正在执行定时任务…</string>
+</resources>
