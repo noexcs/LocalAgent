@@ -4,9 +4,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.noexcs.localagent.data.ScheduledTask
-import com.noexcs.localagent.data.ScheduledTaskRepository
-import com.noexcs.localagent.data.TaskFrequency
+import com.noexcs.localagent.data.task.ScheduledTask
+import com.noexcs.localagent.data.task.ScheduledTaskRepository
+import com.noexcs.localagent.data.task.TaskFrequency
 import java.util.Calendar
 
 class TaskScheduler(private val context: Context) {

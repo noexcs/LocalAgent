@@ -1,4 +1,4 @@
-package com.noexcs.localagent.agent.koog
+package com.noexcs.localagent.agent.tools
 
 import ai.koog.agents.core.tools.SimpleTool
 import ai.koog.agents.core.tools.annotations.LLMDescription
@@ -6,7 +6,7 @@ import ai.koog.serialization.typeToken
 import com.noexcs.localagent.agent.TermuxExecutor
 import kotlinx.serialization.Serializable
 
-object KoogExecuteCommandTool : SimpleTool<KoogExecuteCommandTool.Args>(
+object TermuxExecuteCommandTool : SimpleTool<TermuxExecuteCommandTool.Args>(
     argsType = typeToken<Args>(),
     name = "execute_command",
     description = "Execute a shell command in Termux"

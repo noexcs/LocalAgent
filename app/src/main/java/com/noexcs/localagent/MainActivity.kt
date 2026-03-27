@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.noexcs.localagent.agent.AgentViewModel
-import com.noexcs.localagent.data.ConversationRepository
+import com.noexcs.localagent.data.FileChatHistoryProvider
 import com.noexcs.localagent.data.MemoryManager
 import com.noexcs.localagent.data.SettingsManager
 import com.noexcs.localagent.ui.ChatScreen
@@ -82,7 +82,7 @@ private fun MainContent() {
         val appContext = context.applicationContext
         val memoryManager = remember { MemoryManager(appContext) }
         val settingsManager = remember { SettingsManager(appContext) }
-        val conversationRepository = remember { ConversationRepository(appContext) }
+        val conversationRepository = remember { FileChatHistoryProvider(appContext) }
         val viewModel = remember {
             AgentViewModel(appContext, memoryManager, settingsManager, conversationRepository)
         }

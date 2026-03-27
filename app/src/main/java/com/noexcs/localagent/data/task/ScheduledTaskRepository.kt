@@ -1,7 +1,6 @@
-package com.noexcs.localagent.data
+package com.noexcs.localagent.data.task
 
 import android.content.Context
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 

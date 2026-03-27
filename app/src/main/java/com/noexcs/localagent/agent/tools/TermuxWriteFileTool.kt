@@ -1,4 +1,4 @@
-package com.noexcs.localagent.agent.koog
+package com.noexcs.localagent.agent.tools
 
 import ai.koog.agents.core.tools.SimpleTool
 import ai.koog.agents.core.tools.annotations.LLMDescription
@@ -6,7 +6,7 @@ import ai.koog.serialization.typeToken
 import com.noexcs.localagent.agent.TermuxExecutor
 import kotlinx.serialization.Serializable
 
-object KoogWriteFileTool : SimpleTool<KoogWriteFileTool.Args>(
+object TermuxWriteFileTool : SimpleTool<TermuxWriteFileTool.Args>(
     argsType = typeToken<Args>(),
     name = "write_file",
     description = "Write content to a file"

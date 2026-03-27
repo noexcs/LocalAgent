@@ -1,4 +1,4 @@
-package com.noexcs.localagent.data
+package com.noexcs.localagent.data.task
 
 import kotlinx.serialization.Serializable
 

@@ -1,4 +1,4 @@
-package com.noexcs.localagent.agent.koog
+package com.noexcs.localagent.agent.tools
 
 import ai.koog.agents.core.tools.SimpleTool
 import ai.koog.agents.core.tools.annotations.LLMDescription
@@ -6,7 +6,7 @@ import ai.koog.serialization.typeToken
 import com.noexcs.localagent.agent.TermuxExecutor
 import kotlinx.serialization.Serializable
 
-object KoogReadFileTool : SimpleTool<KoogReadFileTool.Args>(
+object TermuxReadFileTool : SimpleTool<TermuxReadFileTool.Args>(
     argsType = typeToken<Args>(),
     name = "read_file",
     description = "Read the contents of a file"

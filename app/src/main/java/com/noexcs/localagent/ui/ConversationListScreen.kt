@@ -20,21 +20,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.noexcs.localagent.R
-import com.noexcs.localagent.data.ConversationMeta
-import com.noexcs.localagent.data.ConversationRepository
+import com.noexcs.localagent.data.FileChatHistoryProvider
+import com.noexcs.localagent.data.Session
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationDrawerContent(
-    repository: ConversationRepository,
+    repository: FileChatHistoryProvider,
     onLoad: (String) -> Unit,
     onNewChat: () -> Unit
 ) {
     var conversations by remember { mutableStateOf(repository.listAll()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
-    var conversationToDelete by remember { mutableStateOf<ConversationMeta?>(null) }
-    var conversationToRename by remember { mutableStateOf<ConversationMeta?>(null) }
+    var conversationToDelete by remember { mutableStateOf<Session?>(null) }
+    var conversationToRename by remember { mutableStateOf<Session?>(null) }
     var renameText by remember { mutableStateOf("") }
 
     fun refresh() { conversations = repository.listAll() }
@@ -91,7 +91,7 @@ fun ConversationDrawerContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            onLoad(meta.id)
+                            onLoad(meta.sessionId)
                             searchActive = false
                         },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
@@ -122,10 +122,10 @@ fun ConversationDrawerContent(
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                items(filtered, key = { it.id }) { meta ->
+                items(filtered, key = { it.sessionId }) { meta ->
                     DrawerConversationItem(
                         meta = meta,
-                        onClick = { onLoad(meta.id) },
+                        onClick = { onLoad(meta.sessionId) },
                         onDelete = { conversationToDelete = meta },
                         onRename = {
                             renameText = meta.title
@@ -147,7 +147,7 @@ fun ConversationDrawerContent(
             text = { Text(stringResource(R.string.delete_conversation_message, title)) },
             confirmButton = {
                 TextButton(onClick = {
-                    repository.delete(meta.id)
+                    repository.delete(meta.sessionId)
                     refresh()
                     conversationToDelete = null
                 }) {
@@ -180,7 +180,7 @@ fun ConversationDrawerContent(
                 TextButton(
                     onClick = {
                         if (renameText.isNotBlank()) {
-                            repository.rename(meta.id, renameText.trim())
+                            repository.rename(meta.sessionId, renameText.trim())
                             refresh()
                         }
                         conversationToRename = null
@@ -201,7 +201,7 @@ fun ConversationDrawerContent(
 
 @Composable
 private fun DrawerConversationItem(
-    meta: ConversationMeta,
+    meta: Session,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onRename: () -> Unit

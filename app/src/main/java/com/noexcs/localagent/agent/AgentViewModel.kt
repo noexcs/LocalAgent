@@ -1,54 +1,43 @@
 package com.noexcs.localagent.agent
 
+import ai.koog.agents.chatMemory.feature.ChatMemory
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.ext.tool.AskUser
-import ai.koog.agents.ext.tool.ExitTool
-import ai.koog.agents.ext.tool.SayToUser
-import ai.koog.agents.ext.tool.file.ListDirectoryTool
-import ai.koog.agents.ext.tool.file.ReadFileTool
-import ai.koog.agents.ext.tool.file.WriteFileTool
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
-import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
-import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
-import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
-import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
-import ai.koog.rag.base.files.JVMFileSystemProvider
+import ai.koog.prompt.message.Message.Role
 import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.noexcs.localagent.agent.koog.*
-import com.noexcs.localagent.data.ConversationRepository
+import com.noexcs.localagent.agent.tools.TermuxExecuteCommandTool
+import com.noexcs.localagent.agent.tools.TermuxReadFileTool
+import com.noexcs.localagent.agent.tools.TermuxWriteFileTool
+import com.noexcs.localagent.agent.tools.UpdateMemoryTool
+import com.noexcs.localagent.data.FileChatHistoryProvider
 import com.noexcs.localagent.data.MemoryManager
+import com.noexcs.localagent.data.MessageViewModel
 import com.noexcs.localagent.data.SettingsManager
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import java.util.UUID
 
-data class Message(val role: String, val content: String)
-
-@Serializable
-data class SerializableMessage(val role: String, val content: String)
 
 class AgentViewModel(
     context: Context,
     private val memoryManager: MemoryManager,
     private val settingsManager: SettingsManager,
-    private val conversationRepository: ConversationRepository
+    private val fileChatHistoryProvider: FileChatHistoryProvider
 ) : ViewModel() {
 
     private val executor = TermuxExecutor(context.applicationContext)
 
-    val messages = mutableStateListOf<Message>()
+    val messages = mutableStateListOf<MessageViewModel>()
     val isLoading = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
 
-    private var currentConversationId: String = UUID.randomUUID().toString()
+    private var sessionId: String = UUID.randomUUID().toString()
     private var agent: AIAgent<String, String>? = null
 
     private fun buildAgent(): AIAgent<String, String> {
@@ -71,10 +60,10 @@ class AgentViewModel(
         val deepSeekClient = DeepSeekLLMClient(settingsManager.apiKey)
 
         // Initialize tools
-        KoogExecuteCommandTool.init(executor)
-        KoogReadFileTool.init(executor)
-        KoogWriteFileTool.init(executor)
-        KoogUpdateMemoryTool.init(memoryManager)
+        TermuxExecuteCommandTool.init(executor)
+        TermuxReadFileTool.init(executor)
+        TermuxWriteFileTool.init(executor)
+        UpdateMemoryTool.init(memoryManager)
 
         // Create an agent
         return AIAgent(
@@ -84,19 +73,24 @@ class AgentViewModel(
             llmModel = DeepSeekModels.DeepSeekChat,
             systemPrompt = systemPrompt,
             toolRegistry = ToolRegistry {
-                tool(KoogExecuteCommandTool)
-                tool(KoogReadFileTool)
-                tool(KoogWriteFileTool)
-                tool(KoogUpdateMemoryTool)
+                tool(TermuxExecuteCommandTool)
+                tool(TermuxReadFileTool)
+                tool(TermuxWriteFileTool)
+                tool(UpdateMemoryTool)
+            },
+        ) {
+            install(ChatMemory) {
+                chatHistoryProvider = fileChatHistoryProvider
+                windowSize(20)
             }
-        )
+        }
     }
 
     fun sendMessage(userText: String) {
         if (userText.isBlank() || isLoading.value) return
 
         error.value = null
-        messages.add(Message(role = "user", content = userText))
+        messages.add(MessageViewModel(role = Role.User, content = userText))
 
         viewModelScope.launch {
             isLoading.value = true
@@ -105,10 +99,11 @@ class AgentViewModel(
                     agent = buildAgent()
                 }
 
-                val response = agent!!.run(userText)
-                messages.add(Message(role = "assistant", content = response))
+                val aIAgentRunSession = agent!!.createSession(sessionId)
 
-                saveConversation()
+                val response = aIAgentRunSession.run(userText)
+                messages.add(MessageViewModel(role = Role.Assistant, content = response))
+
             } catch (e: Exception) {
                 error.value = e.message ?: "Unknown error"
             } finally {
@@ -117,14 +112,10 @@ class AgentViewModel(
         }
     }
 
-    private suspend fun saveConversation() {
-        // Save conversation logic
-    }
-
     fun clearMessages() {
         messages.clear()
         agent = null
-        currentConversationId = UUID.randomUUID().toString()
+        sessionId = UUID.randomUUID().toString()
     }
 
     fun newConversation() {
@@ -132,7 +123,15 @@ class AgentViewModel(
     }
 
     fun loadConversation(id: String) {
-        clearMessages()
-        currentConversationId = id
+        val session = fileChatHistoryProvider._load(id)
+        if (session != null) {
+            messages.addAll(session.messages.map {
+                MessageViewModel(it.role, it.content)
+            })
+        } else {
+            clearMessages()
+        }
+
+        sessionId = id
     }
 }

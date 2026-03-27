@@ -7,8 +7,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.noexcs.localagent.R
-import com.noexcs.localagent.data.ScheduledTaskRepository
-import com.noexcs.localagent.data.TaskFrequency
+import com.noexcs.localagent.data.task.ScheduledTaskRepository
+import com.noexcs.localagent.data.task.TaskFrequency
 
 class TaskExecutionWorker(
     appContext: Context,

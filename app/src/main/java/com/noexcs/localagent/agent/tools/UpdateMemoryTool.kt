@@ -1,4 +1,4 @@
-package com.noexcs.localagent.agent.koog
+package com.noexcs.localagent.agent.tools
 
 import ai.koog.agents.core.tools.SimpleTool
 import ai.koog.agents.core.tools.annotations.LLMDescription
@@ -6,7 +6,7 @@ import ai.koog.serialization.typeToken
 import com.noexcs.localagent.data.MemoryManager
 import kotlinx.serialization.Serializable
 
-object KoogUpdateMemoryTool : SimpleTool<KoogUpdateMemoryTool.Args>(
+object UpdateMemoryTool : SimpleTool<UpdateMemoryTool.Args>(
     argsType = typeToken<Args>(),
     name = "update_memory",
     description = "Store information in persistent memory"

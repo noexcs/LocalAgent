@@ -93,9 +93,7 @@ dependencies {
 
     // Koog AI Agent Framework
     implementation("ai.koog:koog-agents:0.7.3")
-//    implementation("ai.koog:agents-core:1.0.0")
-//    implementation("ai.koog:prompt-executor-openai-client:1.0.0")
-//    implementation("ai.koog:agents-features-event-handler:1.0.0")
+    implementation("ai.koog:agents-features-memory:0.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

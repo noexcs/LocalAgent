@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.dp
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import com.noexcs.localagent.R
-import com.noexcs.localagent.data.ScheduledTask
-import com.noexcs.localagent.data.ScheduledTaskRepository
-import com.noexcs.localagent.data.TaskFrequency
+import com.noexcs.localagent.data.task.ScheduledTask
+import com.noexcs.localagent.data.task.ScheduledTaskRepository
+import com.noexcs.localagent.data.task.TaskFrequency
 import com.noexcs.localagent.scheduler.TaskScheduler
 import java.util.UUID
 
