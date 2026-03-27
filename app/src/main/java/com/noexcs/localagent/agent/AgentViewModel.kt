@@ -1,9 +1,22 @@
 package com.noexcs.localagent.agent
 
-import ai.koog.agents.AIAgent
-import ai.koog.agents.tools.ToolRegistry
-import ai.koog.prompt.executors.simpleOpenAIExecutor
-import ai.koog.prompt.models.OpenAIModels
+import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.ext.tool.AskUser
+import ai.koog.agents.ext.tool.ExitTool
+import ai.koog.agents.ext.tool.SayToUser
+import ai.koog.agents.ext.tool.file.ListDirectoryTool
+import ai.koog.agents.ext.tool.file.ReadFileTool
+import ai.koog.agents.ext.tool.file.WriteFileTool
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
+import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
+import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
+import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
+import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
+import ai.koog.rag.base.files.JVMFileSystemProvider
 import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,9 +27,13 @@ import com.noexcs.localagent.data.ConversationRepository
 import com.noexcs.localagent.data.MemoryManager
 import com.noexcs.localagent.data.SettingsManager
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 data class Message(val role: String, val content: String)
+
+@Serializable
+data class SerializableMessage(val role: String, val content: String)
 
 class AgentViewModel(
     context: Context,
@@ -32,9 +49,9 @@ class AgentViewModel(
     val error = mutableStateOf<String?>(null)
 
     private var currentConversationId: String = UUID.randomUUID().toString()
-    private var agent: AIAgent? = null
+    private var agent: AIAgent<String, String>? = null
 
-    private fun buildAgent(): AIAgent {
+    private fun buildAgent(): AIAgent<String, String> {
         val memory = memoryManager.read()
         val systemPrompt = buildString {
             if (settingsManager.userSystemPrompt.isNotBlank()) {
@@ -51,24 +68,26 @@ class AgentViewModel(
             }
         }
 
+        val deepSeekClient = DeepSeekLLMClient(settingsManager.apiKey)
+
+        // Initialize tools
+        KoogExecuteCommandTool.init(executor)
+        KoogReadFileTool.init(executor)
+        KoogWriteFileTool.init(executor)
+        KoogUpdateMemoryTool.init(memoryManager)
+
+        // Create an agent
         return AIAgent(
-            promptExecutor = simpleOpenAIExecutor(
-                apiKey = settingsManager.apiKey,
-                baseUrl = settingsManager.baseUrl
-            ),
+            // Create a prompt executor using the LLM client
+            promptExecutor = MultiLLMPromptExecutor(deepSeekClient),
+            // Provide a model
+            llmModel = DeepSeekModels.DeepSeekChat,
             systemPrompt = systemPrompt,
-            llmModel = when {
-                settingsManager.model.contains("gpt-4o") -> OpenAIModels.Chat.GPT4o
-                settingsManager.model.contains("gpt-4") -> OpenAIModels.Chat.GPT4Turbo
-                else -> OpenAIModels.Chat.GPT35Turbo
-            },
             toolRegistry = ToolRegistry {
-                tool(KoogExecuteCommandTool(executor))
-                tool(KoogReadFileTool(executor))
-                tool(KoogWriteFileTool(executor))
-                tool(KoogListDirectoryTool(executor))
-                tool(KoogSearchFilesTool(executor))
-                tool(KoogUpdateMemoryTool(memoryManager))
+                tool(KoogExecuteCommandTool)
+                tool(KoogReadFileTool)
+                tool(KoogWriteFileTool)
+                tool(KoogUpdateMemoryTool)
             }
         )
     }
@@ -113,12 +132,7 @@ class AgentViewModel(
     }
 
     fun loadConversation(id: String) {
-        viewModelScope.launch {
-            conversationRepository.getConversation(id)?.let { conv ->
-                clearMessages()
-                currentConversationId = conv.id
-                // Load messages from conversation
-            }
-        }
+        clearMessages()
+        currentConversationId = id
     }
 }

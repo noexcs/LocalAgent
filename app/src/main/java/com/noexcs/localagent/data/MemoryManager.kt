@@ -11,4 +11,10 @@ class MemoryManager(context: Context) {
     fun write(content: String) {
         file.writeText(content)
     }
+
+    fun saveMemory(key: String, value: String) {
+        val current = read()
+        val updated = "$current\n## $key\n$value\n"
+        write(updated)
+    }
 }

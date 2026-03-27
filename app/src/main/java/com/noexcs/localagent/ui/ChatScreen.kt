@@ -199,7 +199,8 @@ private fun ChatContent(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
                                 scope.launch { snackbarHostState.showSnackbar(copiedMsg, duration = SnackbarDuration.Short) }
-                            }
+                            },
+                            onRegenerate = { /* TODO */ }
                         )
                     }
 

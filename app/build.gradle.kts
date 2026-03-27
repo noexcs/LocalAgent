@@ -46,10 +46,23 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+        resources {
+            excludes += setOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/DEPENDENCIES",
+                "META-INF/io.netty.versions.properties",
+                "META-INF/*.kotlin_module"
+            )
+        }
     }
 }
 
 dependencies {
+    // Android相关依赖
+    implementation("androidx.compose.ui:ui:1.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -70,6 +83,8 @@ dependencies {
     implementation(libs.okhttp)
     // Kotlinx Serialization for JSON
     implementation(libs.kotlinx.serialization.json)
+    // Kog Agents for AI agent framework
+    implementation(libs.koog.agents)
     // WorkManager for background task execution
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     // Markdown rendering
@@ -77,7 +92,10 @@ dependencies {
     implementation("com.mikepenz:multiplatform-markdown-renderer-coil3:0.27.0")
 
     // Koog AI Agent Framework
-    implementation("ai.koog:koog-agents-jvm:0.7.3")
+    implementation("ai.koog:koog-agents:0.7.3")
+//    implementation("ai.koog:agents-core:1.0.0")
+//    implementation("ai.koog:prompt-executor-openai-client:1.0.0")
+//    implementation("ai.koog:agents-features-event-handler:1.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

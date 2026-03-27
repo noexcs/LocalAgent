@@ -1,26 +1,34 @@
 package com.noexcs.localagent.agent.koog
 
-import ai.koog.agents.tools.Tool
+import ai.koog.agents.core.tools.SimpleTool
+import ai.koog.agents.core.tools.annotations.LLMDescription
+import ai.koog.serialization.typeToken
 import com.noexcs.localagent.agent.TermuxExecutor
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class WriteFileArgs(val path: String, val content: String)
+object KoogWriteFileTool : SimpleTool<KoogWriteFileTool.Args>(
+    argsType = typeToken<Args>(),
+    name = "write_file",
+    description = "Write content to a file"
+) {
+    private lateinit var executor: TermuxExecutor
 
-@Serializable
-data class WriteFileResult(val success: Boolean, val error: String? = null)
+    fun init(executor: TermuxExecutor) {
+        this.executor = executor
+    }
 
-class KoogWriteFileTool(private val executor: TermuxExecutor) : Tool<WriteFileArgs, WriteFileResult> {
-    override val name = "write_file"
-    override val description = "Write content to a file"
+    @Serializable
+    data class Args(
+        @property:LLMDescription("Path to the file")
+        val path: String,
+        @property:LLMDescription("Content to write")
+        val content: String
+    )
 
-    override suspend fun execute(args: WriteFileArgs): WriteFileResult {
+    override suspend fun execute(args: Args): String {
         val escapedPath = args.path.replace("'", "'\\''")
         val escapedContent = args.content.replace("'", "'\\''")
         val result = executor.execute("echo '$escapedContent' > '$escapedPath'")
-        return WriteFileResult(
-            success = result.exitCode == 0,
-            error = if (result.exitCode != 0) result.stderr else null
-        )
+        return if (result.exitCode == 0) "File written successfully" else "Error: ${result.stderr}"
     }
 }

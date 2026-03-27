@@ -1,6 +1,6 @@
 package com.noexcs.localagent.data
 
-import com.noexcs.localagent.api.ChatMessage
+import com.noexcs.localagent.agent.SerializableMessage
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,7 +9,7 @@ data class Conversation(
     val title: String,
     val createdAt: Long,
     val updatedAt: Long,
-    val messages: List<ChatMessage>
+    val messages: List<SerializableMessage>
 )
 
 @Serializable

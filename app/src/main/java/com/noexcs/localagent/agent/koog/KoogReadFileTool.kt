@@ -1,25 +1,30 @@
 package com.noexcs.localagent.agent.koog
 
-import ai.koog.agents.tools.Tool
+import ai.koog.agents.core.tools.SimpleTool
+import ai.koog.agents.core.tools.annotations.LLMDescription
+import ai.koog.serialization.typeToken
 import com.noexcs.localagent.agent.TermuxExecutor
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class ReadFileArgs(val path: String)
+object KoogReadFileTool : SimpleTool<KoogReadFileTool.Args>(
+    argsType = typeToken<Args>(),
+    name = "read_file",
+    description = "Read the contents of a file"
+) {
+    private lateinit var executor: TermuxExecutor
 
-@Serializable
-data class ReadFileResult(val content: String, val error: String? = null)
+    fun init(executor: TermuxExecutor) {
+        this.executor = executor
+    }
 
-class KoogReadFileTool(private val executor: TermuxExecutor) : Tool<ReadFileArgs, ReadFileResult> {
-    override val name = "read_file"
-    override val description = "Read the contents of a file"
+    @Serializable
+    data class Args(
+        @property:LLMDescription("Path to the file")
+        val path: String
+    )
 
-    override suspend fun execute(args: ReadFileArgs): ReadFileResult {
+    override suspend fun execute(args: Args): String {
         val result = executor.execute("cat '${args.path.replace("'", "'\\''")}'")
-        return if (result.exitCode == 0) {
-            ReadFileResult(content = result.stdout)
-        } else {
-            ReadFileResult(content = "", error = result.stderr)
-        }
+        return if (result.exitCode == 0) result.stdout else "Error: ${result.stderr}"
     }
 }
