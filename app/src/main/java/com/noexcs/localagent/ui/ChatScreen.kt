@@ -48,8 +48,7 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import com.noexcs.localagent.R
 import com.noexcs.localagent.agent.AgentViewModel
-import com.noexcs.localagent.agent.PendingToolApproval
-import com.noexcs.localagent.api.ChatMessage
+import com.noexcs.localagent.agent.Message
 import com.noexcs.localagent.data.ConversationRepository
 import kotlinx.coroutines.launch
 
@@ -105,7 +104,6 @@ private fun ChatContent(
     val messages = viewModel.messages
     val isLoading by viewModel.isLoading
     val error by viewModel.error
-    val pendingApproval by viewModel.pendingApproval
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -119,9 +117,8 @@ private fun ChatContent(
         }
     }
 
-    // Find the index of the last final assistant message (not loading)
     val lastAssistantIndex = if (!isLoading) {
-        messages.indices.lastOrNull { messages[it].role == "assistant" && !messages[it].content.isNullOrBlank() }
+        messages.indices.lastOrNull { messages[it].role == "assistant" }
     } else null
 
     Scaffold(
@@ -200,10 +197,9 @@ private fun ChatContent(
                         AssistantActions(
                             onCopy = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content ?: ""))
+                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
                                 scope.launch { snackbarHostState.showSnackbar(copiedMsg, duration = SnackbarDuration.Short) }
-                            },
-                            onRegenerate = { viewModel.regenerateLastResponse() }
+                            }
                         )
                     }
 
@@ -232,17 +228,6 @@ private fun ChatContent(
                             modifier = Modifier.padding(12.dp)
                         )
                     }
-                }
-            }
-
-            // Tool approval card
-            AnimatedVisibility(visible = pendingApproval != null) {
-                pendingApproval?.let { approval ->
-                    ToolApprovalCard(
-                        approval = approval,
-                        onAllow = { viewModel.approveToolCall() },
-                        onDeny = { viewModel.denyToolCall() }
-                    )
                 }
             }
 
@@ -358,70 +343,6 @@ private fun AssistantActionButton(
 }
 
 @Composable
-private fun ToolApprovalCard(
-    approval: PendingToolApproval,
-    onAllow: () -> Unit,
-    onDeny: () -> Unit
-) {
-    ElevatedCard(
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(R.string.tool_approval_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = approval.displaySummary,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalButton(
-                    onClick = onDeny,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(stringResource(R.string.tool_approval_deny))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = onAllow,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(stringResource(R.string.tool_approval_allow))
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun EmptyState() {
     Box(
         modifier = Modifier
@@ -497,11 +418,10 @@ private fun ThinkingIndicator() {
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun MessageBubble(message: Message) {
     when (message.role) {
-        "user" -> UserBubble(message.content ?: "")
-        "assistant" -> AssistantBubble(message)
-        "tool" -> ToolResultBubble(message)
+        "user" -> UserBubble(message.content)
+        "assistant" -> AssistantBubble(message.content)
     }
 }
 
@@ -528,81 +448,18 @@ private fun UserBubble(text: String) {
 }
 
 @Composable
-private fun AssistantBubble(message: ChatMessage) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 2.dp)
-    ) {
-        message.toolCalls?.forEach { toolCall ->
-            Row(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text("\u26A1", style = MaterialTheme.typography.labelSmall)
-                Text(
-                    text = toolCall.function.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        if (!message.content.isNullOrBlank()) {
-            Markdown(
-                content = message.content,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                colors = markdownColor(
-                    text = MaterialTheme.colorScheme.onSurface,
-                    codeText = MaterialTheme.colorScheme.onSurfaceVariant,
-                    codeBackground = MaterialTheme.colorScheme.surfaceVariant,
-                ),
-                typography = markdownTypography(
-                    text = MaterialTheme.typography.bodyMedium,
-                    code = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                ),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ToolResultBubble(message: ChatMessage) {
-    var expanded by remember { mutableStateOf(false) }
-    val content = message.content ?: ""
-    val isLong = content.length > 50
-    val preview = if (isLong && !expanded) content.take(50) + "\u2026" else content
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp)
-            .then(if (isLong) Modifier.clickable { expanded = !expanded } else Modifier)
-            .animateContentSize()
-            .padding(horizontal = 4.dp, vertical = 4.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text("\uD83D\uDCCB", style = MaterialTheme.typography.labelSmall)
-            Text(
-                text = if (isLong) {
-                    stringResource(R.string.tool_result) + " \u00B7 " +
-                        stringResource(if (expanded) R.string.tap_collapse else R.string.tap_expand)
-                } else stringResource(R.string.tool_result),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = preview,
-            style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-    }
+private fun AssistantBubble(content: String) {
+    Markdown(
+        content = content,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+        colors = markdownColor(
+            text = MaterialTheme.colorScheme.onSurface,
+            codeText = MaterialTheme.colorScheme.onSurfaceVariant,
+            codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        typography = markdownTypography(
+            text = MaterialTheme.typography.bodyMedium,
+            code = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+        ),
+    )
 }
