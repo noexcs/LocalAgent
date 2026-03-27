@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Info
@@ -14,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,14 +26,80 @@ import com.noexcs.localagent.R
 import com.noexcs.localagent.data.MemoryManager
 import com.noexcs.localagent.data.SettingsManager
 import kotlinx.coroutines.launch
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
+import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.google.GoogleModels
+import ai.koog.prompt.executor.clients.dashscope.DashscopeModels
+import ai.koog.prompt.executor.clients.mistralai.MistralAIModels
+import ai.koog.prompt.executor.ollama.client.OllamaModels
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 
 private data class LanguageOption(val tag: String, val labelRes: Int)
+
+private data class ProviderOption(val name: String, val stringRes: Int)
+
+private val providerOptions = listOf(
+    ProviderOption("DeepSeek", R.string.provider_deepseek),
+    ProviderOption("Anthropic", R.string.provider_anthropic),
+    ProviderOption("OpenAI", R.string.provider_openai),
+    ProviderOption("Google", R.string.provider_google),
+    ProviderOption("Dashscope", R.string.provider_dashscope),
+    ProviderOption("Mistral AI", R.string.provider_mistral),
+    ProviderOption("Ollama", R.string.provider_ollama),
+    ProviderOption("OpenRouter", R.string.provider_openrouter),
+    ProviderOption("Custom", R.string.provider_custom),
+)
 
 private val languageOptions = listOf(
     LanguageOption("", R.string.language_system),
     LanguageOption("en", R.string.language_en),
     LanguageOption("zh-Hans", R.string.language_zh_hans),
 )
+
+/**
+ * Get available models for a provider
+ * Uses model constants from each provider's Models object
+ */
+private fun getAvailableModelsForProvider(provider: String): List<Pair<String, Int>> {
+    return when (provider) {
+        "DeepSeek" -> DeepSeekModels.models.map { model ->
+            model.id to 0  // 0 means use model.toString() for display
+        }
+        
+        "Anthropic" -> AnthropicModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "OpenAI" -> OpenAIModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "Google" -> GoogleModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "Dashscope" -> DashscopeModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "Mistral AI" -> MistralAIModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "Ollama" -> OllamaModels.models.map { model ->
+            model.id to 0
+        }
+        
+        "OpenRouter" -> OpenRouterModels.models.map { model ->
+            model.id to 0
+        }
+        
+        else -> DeepSeekModels.models.map { model ->
+            model.id to 0
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +119,8 @@ fun SettingsScreen(
     var apiKeyVisible by remember { mutableStateOf(false) }
     var hasUnsavedChanges by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var providerExpanded by remember { mutableStateOf(false) }
+    var modelExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -162,26 +233,67 @@ fun SettingsScreen(
                 title = stringResource(R.string.section_provider),
                 subtitle = stringResource(R.string.section_provider_subtitle)
             ) {
-                OutlinedTextField(
-                    value = providerType,
-                    onValueChange = { providerType = it; markChanged() },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.provider_label)) },
-                    placeholder = { Text("OpenAI-Compatible") },
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    colors = settingsFieldColors()
-                )
-                OutlinedTextField(
-                    value = baseUrl,
-                    onValueChange = { baseUrl = it; markChanged() },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.base_url_label)) },
-                    placeholder = { Text("https://api.openai.com") },
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    colors = settingsFieldColors()
-                )
+                // Provider dropdown
+                ExposedDropdownMenuBox(
+                    expanded = providerExpanded,
+                    onExpandedChange = { providerExpanded = !providerExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = providerType,
+                        onValueChange = { },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        label = { Text(stringResource(R.string.provider_label)) },
+                        placeholder = { Text("DeepSeek") },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Select provider",
+                                modifier = Modifier.rotate(if (providerExpanded) 180f else 0f)
+                            )
+                        },
+                        colors = settingsFieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = providerExpanded,
+                        onDismissRequest = { providerExpanded = false }
+                    ) {
+                        providerOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(option.stringRes)) },
+                                onClick = {
+                                    providerType = option.name
+                                    baseUrl = when (option.name) {
+                                        "Ollama" -> "http://localhost:11434"
+                                        else -> ""
+                                    }
+                                    model = getAvailableModelsForProvider(option.name).first().first
+                                    providerExpanded = false
+                                    markChanged()
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
+                    }
+                }
+                
+                // Only show Base URL field for Ollama provider
+                if (providerType == "Ollama") {
+                    OutlinedTextField(
+                        value = baseUrl,
+                        onValueChange = { baseUrl = it; markChanged() },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.base_url_label)) },
+                        placeholder = { Text("http://localhost:11434") },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = settingsFieldColors()
+                    )
+                }
                 OutlinedTextField(
                     value = apiKey,
                     onValueChange = { apiKey = it; markChanged() },
@@ -201,16 +313,55 @@ fun SettingsScreen(
                     },
                     colors = settingsFieldColors()
                 )
-                OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it; markChanged() },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.model_label)) },
-                    placeholder = { Text("gpt-4o") },
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    colors = settingsFieldColors()
-                )
+                
+                // Model dropdown - dynamically populated based on selected provider
+                // Framework for model selection - to be completed with actual model lists
+                val availableModels = getAvailableModelsForProvider(providerType)
+                
+                ExposedDropdownMenuBox(
+                    expanded = modelExpanded,
+                    onExpandedChange = { modelExpanded = !modelExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = model,
+                        onValueChange = { },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        label = { Text(stringResource(R.string.model_label)) },
+                        placeholder = { Text(availableModels.firstOrNull()?.first ?: "Select model") },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Select model",
+                                modifier = Modifier.rotate(if (modelExpanded) 180f else 0f)
+                            )
+                        },
+                        colors = settingsFieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = modelExpanded,
+                        onDismissRequest = { modelExpanded = false }
+                    ) {
+                        availableModels.forEach { (modelId, stringRes) ->
+                            DropdownMenuItem(
+                                text = { 
+                                    // Use model ID directly (stringRes == 0 means use model.toString())
+                                    Text(modelId) 
+                                },
+                                onClick = {
+                                    model = modelId
+                                    modelExpanded = false
+                                    markChanged()
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
+                    }
+                }
             }
 
             // Tool confirmation section

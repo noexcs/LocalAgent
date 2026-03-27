@@ -37,6 +37,32 @@ import ai.koog.prompt.message.Message
 import ai.koog.prompt.streaming.StreamFrame
 import ai.koog.prompt.structure.markdown.MarkdownStructureDefinition
 import ai.koog.agents.ext.agent.reActStrategy
+import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
+import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
+import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.bedrock.BedrockClientSettings
+import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
+import ai.koog.prompt.executor.clients.dashscope.DashscopeClientSettings
+import ai.koog.prompt.executor.clients.dashscope.DashscopeLLMClient
+import ai.koog.prompt.executor.clients.dashscope.DashscopeModels
+import ai.koog.prompt.executor.clients.google.GoogleClientSettings
+import ai.koog.prompt.executor.clients.google.GoogleLLMClient
+import ai.koog.prompt.executor.clients.google.GoogleModels
+import ai.koog.prompt.executor.clients.mistralai.MistralAIClientSettings
+import ai.koog.prompt.executor.clients.mistralai.MistralAILLMClient
+import ai.koog.prompt.executor.clients.mistralai.MistralAIModels
+import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
+import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterClientSettings
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterLLMClient
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
+import ai.koog.prompt.executor.ollama.client.OllamaClient
+import ai.koog.prompt.executor.ollama.client.OllamaModels
+import ai.koog.prompt.llm.OpenRouterLLMProvider
+import kotlin.time.Clock
+import  ai.koog.prompt.llm.LLModel
+
 class AgentViewModel(
     context: Context,
     private val memoryManager: MemoryManager,
@@ -70,20 +96,51 @@ class AgentViewModel(
             }
         }
 
-        val deepSeekClient = DeepSeekLLMClient(settingsManager.apiKey)
-
         // Initialize tools
         TermuxExecuteCommandTool.init(executor)
         TermuxReadFileTool.init(executor)
         TermuxWriteFileTool.init(executor)
         UpdateMemoryTool.init(memoryManager)
 
+        // Create LLM client based on provider
+        val llmClient = when (settingsManager.providerType) {
+            "DeepSeek" -> DeepSeekLLMClient(settingsManager.apiKey)
+            "Anthropic" -> AnthropicLLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = AnthropicClientSettings()
+            )
+            "OpenAI" -> OpenAILLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = OpenAIClientSettings()
+            )
+            "Google" -> GoogleLLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = GoogleClientSettings()
+            )
+            "Dashscope" -> DashscopeLLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = DashscopeClientSettings()
+            )
+            "Mistral AI" -> MistralAILLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = MistralAIClientSettings()
+            )
+            "Ollama" -> OllamaClient(baseUrl = settingsManager.baseUrl)
+            "OpenRouter" -> OpenRouterLLMClient(
+                apiKey = settingsManager.apiKey,
+                settings = OpenRouterClientSettings()
+            )
+            else -> DeepSeekLLMClient(settingsManager.apiKey)
+        }
+
+        // Select the appropriate model based on provider and user selection
+        val llmModel = getLLModel(settingsManager.providerType, settingsManager.model)
+
+
         // Create an agent
         return AIAgent(
-            // Create a prompt executor using the LLM client
-            promptExecutor = MultiLLMPromptExecutor(deepSeekClient),
-            // Provide a model
-            llmModel = DeepSeekModels.DeepSeekChat,
+            promptExecutor = MultiLLMPromptExecutor(llmClient),
+            llmModel = llmModel,
             systemPrompt = systemPrompt,
             toolRegistry = ToolRegistry {
                 tool(TermuxExecuteCommandTool)
@@ -161,6 +218,34 @@ class AgentViewModel(
             }
         }
 
+    }
+
+    private fun getLLModel(provider: String, modelId: String): ai.koog.prompt.llm.LLModel {
+        return when (provider) {
+            "DeepSeek" -> getModelFromListOrFirst(DeepSeekModels.models, modelId)
+            "Anthropic" -> getModelFromListOrFirst(AnthropicModels.models, modelId)
+            "OpenAI" -> getModelFromListOrFirst(OpenAIModels.models, modelId)
+            "Google" -> getModelFromListOrFirst(GoogleModels.models, modelId)
+            "Dashscope" -> getModelFromListOrFirst(DashscopeModels.models, modelId)
+            "Mistral AI" -> getModelFromListOrFirst(MistralAIModels.models, modelId)
+            "Ollama" -> getModelFromListOrFirst(OllamaModels.models, modelId)
+            "OpenRouter" -> getModelFromListOrFirst(OpenRouterModels.models, modelId)
+            else -> DeepSeekModels.DeepSeekChat
+        }
+    }
+
+    private fun getModelFromListOrFirst(
+        models: List<LLModel>,
+        modelId: String
+    ): LLModel {
+        // Try to find exact match
+        return models.find { it.id == modelId }
+            // Try case-insensitive match
+            ?: models.find { it.id.equals(modelId, ignoreCase = true) }
+            // Fallback to first available model
+            ?: models.firstOrNull()
+            // Ultimate fallback (shouldn't happen)
+            ?: throw IllegalStateException("No models available for provider")
     }
 
 

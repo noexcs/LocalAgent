@@ -49,6 +49,17 @@
     <string name="model_label">Model</string>
     <string name="show">Show</string>
     <string name="hide">Hide</string>
+    
+    <!-- Provider Options -->
+    <string name="provider_deepseek">DeepSeek</string>
+    <string name="provider_anthropic">Anthropic</string>
+    <string name="provider_openai">OpenAI</string>
+    <string name="provider_google">Google</string>
+    <string name="provider_dashscope">Dashscope (Alibaba)</string>
+    <string name="provider_mistral">Mistral AI</string>
+    <string name="provider_ollama">Ollama</string>
+    <string name="provider_openrouter">OpenRouter</string>
+    <string name="provider_custom">Custom</string>
 
     <string name="section_system_prompt">Custom System Prompt</string>
     <string name="section_system_prompt_subtitle">Prepended to the base prompt in every conversation</string>

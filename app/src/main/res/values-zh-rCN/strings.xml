@@ -49,6 +49,17 @@
     <string name="model_label">模型</string>
     <string name="show">显示</string>
     <string name="hide">隐藏</string>
+    
+    <!-- Provider Options -->
+    <string name="provider_deepseek">DeepSeek</string>
+    <string name="provider_anthropic">Anthropic</string>
+    <string name="provider_openai">OpenAI</string>
+    <string name="provider_google">Google</string>
+    <string name="provider_dashscope">Dashscope (阿里云)</string>
+    <string name="provider_mistral">Mistral AI</string>
+    <string name="provider_ollama">Ollama</string>
+    <string name="provider_openrouter">OpenRouter</string>
+    <string name="provider_custom">自定义</string>
 
     <string name="section_system_prompt">自定义系统提示词</string>
     <string name="section_system_prompt_subtitle">在每次对话中添加到基础提示词之前</string>
