@@ -10,3 +10,5 @@
 .cxx
 local.properties
 /.git-ignore
+key.properties
+app/release-key.jks
