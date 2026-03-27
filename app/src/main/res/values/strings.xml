@@ -11,7 +11,9 @@
     <string name="thinking">Thinking…</string>
     <string name="empty_title">Start a conversation</string>
     <string name="empty_subtitle">Ask me anything or give me a task</string>
+    <string name="tool_starting">Tool calling</string>
     <string name="tool_result">Tool result</string>
+    <string name="tool_call_failed">Tool call failed</string>
     <string name="tap_expand">tap to expand</string>
     <string name="tap_collapse">tap to collapse</string>
     <string name="copy">Copy</string>

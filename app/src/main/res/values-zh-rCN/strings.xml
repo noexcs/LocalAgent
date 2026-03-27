@@ -11,7 +11,9 @@
     <string name="thinking">思考中…</string>
     <string name="empty_title">开始对话</string>
     <string name="empty_subtitle">问我任何问题或给我一个任务</string>
+    <string name="tool_starting">工具调用中</string>
     <string name="tool_result">工具结果</string>
+    <string name="tool_call_failed">工具调用失败</string>
     <string name="tap_expand">点击展开</string>
     <string name="tap_collapse">点击收起</string>
     <string name="copy">复制</string>

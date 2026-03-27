@@ -16,5 +16,5 @@ data class Session(
 @Serializable
 data class MessageViewModel(
     val role: Role,
-    val content: String
+    var content: String
 )

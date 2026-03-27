@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -162,7 +164,10 @@ private fun ChatContent(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(R.string.chat_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.chat_title),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -225,16 +230,29 @@ private fun ChatContent(
                     item { ThinkingIndicator() }
                 }
 
-                itemsIndexed(messages.asReversed(), key = { index, _ -> messages.size - 1 - index }) { index, message ->
+                itemsIndexed(
+                    messages.asReversed(),
+                    key = { index, _ -> messages.size - 1 - index }) { index, message ->
                     val originalIndex = messages.size - 1 - index
 
                     // Show action buttons before the message (visually below in reversed layout)
                     if (originalIndex == lastAssistantIndex) {
                         AssistantActions(
                             onCopy = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                                scope.launch { snackbarHostState.showSnackbar(copiedMsg, duration = SnackbarDuration.Short) }
+                                val clipboard =
+                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText(
+                                        "message",
+                                        message.content
+                                    )
+                                )
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        copiedMsg,
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
                             },
                             onRegenerate = { /* TODO */ }
                         )
@@ -325,7 +343,9 @@ private fun ChatContent(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = 0.4f
+                            )
                         )
                     ) {
                         Icon(
@@ -352,7 +372,13 @@ private fun AssistantActions(
         AssistantActionButton(stringResource(R.string.copy), onClick = onCopy)
         AssistantActionButton(
             stringResource(R.string.regenerate),
-            icon = { Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp)) },
+            icon = {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            },
             onClick = onRegenerate
         )
     }
@@ -461,7 +487,7 @@ private fun MessageBubble(message: MessageViewModel) {
         Role.Assistant -> AssistantBubble(message.content)
         Role.System -> AssistantBubble(message.content)
         Role.Reasoning -> AssistantBubble(message.content)
-        Role.Tool -> AssistantBubble(message.content)
+        Role.Tool -> ToolResultBubble(message.content)
     }
 }
 
@@ -502,4 +528,34 @@ private fun AssistantBubble(content: String) {
             code = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
         ),
     )
+}
+
+@Composable
+private fun ToolResultBubble(content: String) {
+    var expanded by remember { mutableStateOf(false) }
+    val isLong = content.length > 50
+    val preview = if (isLong && !expanded) content.take(50) + "\u2026" else content
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 0.dp)
+            .then(if (isLong) Modifier.clickable { expanded = !expanded } else Modifier)
+            .animateContentSize()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text("\uD83D\uDCCB", style = MaterialTheme.typography.labelSmall)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = preview,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
 }

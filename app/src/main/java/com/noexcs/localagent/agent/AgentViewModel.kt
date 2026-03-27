@@ -2,12 +2,16 @@ package com.noexcs.localagent.agent
 
 import ai.koog.agents.chatMemory.feature.ChatMemory
 import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.features.eventHandler.feature.handleEvents
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.message.Message.Role
+import ai.koog.prompt.structure.markdown.markdownStreamingParser
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -22,8 +26,17 @@ import com.noexcs.localagent.data.MessageViewModel
 import com.noexcs.localagent.data.SettingsManager
 import kotlinx.coroutines.launch
 import java.util.UUID
-
-
+import kotlin.math.log
+import ai.koog.agents.ext.agent.chatAgentStrategy
+import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.builder.node
+import ai.koog.agents.core.agent.GraphAIAgent
+import ai.koog.agents.core.agent.invoke
+import ai.koog.agents.features.eventHandler.feature.handleEvents
+import ai.koog.prompt.message.Message
+import ai.koog.prompt.streaming.StreamFrame
+import ai.koog.prompt.structure.markdown.MarkdownStructureDefinition
+import ai.koog.agents.ext.agent.reActStrategy
 class AgentViewModel(
     context: Context,
     private val memoryManager: MemoryManager,
@@ -83,8 +96,74 @@ class AgentViewModel(
                 chatHistoryProvider = fileChatHistoryProvider
                 windowSize(20)
             }
+            handleEvents {
+//                onToolCallStarting { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call starting: ${eventContext.toolName}\nArgs: ${eventContext.toolArgs.toString()}"))
+//                }
+//                onToolCallFailed { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call failed: ${eventContext.toolName}"))
+//                }
+//                onToolCallCompleted { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call completed: ${eventContext.toolName}\nResult: ${eventContext.toolResult}"))
+//                }
+
+                // Agent lifecycle
+//                onAgentStarting { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent starting: ${eventContext.runId}"))
+//
+//                }
+//                onAgentCompleted { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent completed: ${eventContext.agentId}"))
+//                }
+//                onAgentClosing { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent closing: ${eventContext.agentId}"))
+//                }
+//                onAgentExecutionFailed { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent execution failed: ${eventContext.agentId}"))
+//                }
+
+                // LLM streaming
+//                onLLMStreamingStarting { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming starting: ${eventContext.prompt}"))
+//                }
+//                onLLMStreamingCompleted { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming completed: ${eventContext.prompt}"))
+//                }
+//                onLLMStreamingFailed { eventContext ->
+//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming failed: ${eventContext.prompt}"))
+//                }
+//                onLLMStreamingFrameReceived { eventContext ->
+//                    when (val frame = eventContext.streamFrame) {
+//                        is StreamFrame.TextDelta -> {
+//                            messages.last().content += frame.text
+//                        }
+//                        is StreamFrame.TextComplete -> {
+//                            messages.last().content += frame.text
+//                        }
+//                        is StreamFrame.ReasoningComplete -> {
+//                            messages.last().content += frame.text
+//                        }
+//                        is StreamFrame.ToolCallComplete -> {
+//                            messages.last().content += frame.content
+//                        }
+//                        is StreamFrame.ReasoningDelta -> {
+//                            messages.last().content += frame.text
+//                        }
+//                        is StreamFrame.ToolCallDelta -> {
+//                            messages.last().content += frame.content
+//                        }
+//                        is StreamFrame.End -> {
+//                            messages.last().content += frame.metaInfo
+//                        }
+//                    }
+//                }
+
+            }
         }
+
     }
+
+
 
     fun sendMessage(userText: String) {
         if (userText.isBlank() || isLoading.value) return
