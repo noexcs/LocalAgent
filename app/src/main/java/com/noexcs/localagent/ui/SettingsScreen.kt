@@ -120,46 +120,42 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Language section
+
+            // System Prompt section
             SectionCard(
-                title = stringResource(R.string.section_language),
-                subtitle = stringResource(R.string.section_language_subtitle)
+                title = stringResource(R.string.section_system_prompt),
+                subtitle = stringResource(R.string.section_system_prompt_subtitle)
             ) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    languageOptions.forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = selectedLanguage == option.tag,
-                            onClick = { selectedLanguage = option.tag; markChanged() },
-                            shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
-                        ) {
-                            Text(stringResource(option.labelRes), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
+                OutlinedTextField(
+                    value = systemPrompt,
+                    onValueChange = { systemPrompt = it; markChanged() },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.system_prompt_placeholder)) },
+                    shape = RoundedCornerShape(12.dp),
+                    minLines = 4,
+                    maxLines = 10,
+                    colors = settingsFieldColors()
+                )
             }
 
-            // Tool confirmation section
+            // Memory section
             SectionCard(
-                title = stringResource(R.string.section_tool_confirm),
-                subtitle = stringResource(R.string.section_tool_confirm_subtitle)
+                title = stringResource(R.string.section_memory),
+                subtitle = stringResource(R.string.section_memory_subtitle)
             ) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = toolConfirmMode == "ask",
-                        onClick = { toolConfirmMode = "ask"; markChanged() },
-                        shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    ) {
-                        Text(stringResource(R.string.tool_confirm_ask), style = MaterialTheme.typography.labelMedium)
-                    }
-                    SegmentedButton(
-                        selected = toolConfirmMode == "always_allow",
-                        onClick = { toolConfirmMode = "always_allow"; markChanged() },
-                        shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    ) {
-                        Text(stringResource(R.string.tool_confirm_always_allow), style = MaterialTheme.typography.labelMedium)
-                    }
-                }
+                OutlinedTextField(
+                    value = memory,
+                    onValueChange = { memory = it; markChanged() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 200.dp, max = 400.dp),
+                    placeholder = { Text(stringResource(R.string.memory_placeholder)) },
+                    shape = RoundedCornerShape(12.dp),
+                    minLines = 8,
+                    colors = settingsFieldColors()
+                )
             }
+
 
             // Provider section
             SectionCard(
@@ -217,39 +213,45 @@ fun SettingsScreen(
                 )
             }
 
-            // System Prompt section
+            // Tool confirmation section
             SectionCard(
-                title = stringResource(R.string.section_system_prompt),
-                subtitle = stringResource(R.string.section_system_prompt_subtitle)
+                title = stringResource(R.string.section_tool_confirm),
+                subtitle = stringResource(R.string.section_tool_confirm_subtitle)
             ) {
-                OutlinedTextField(
-                    value = systemPrompt,
-                    onValueChange = { systemPrompt = it; markChanged() },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.system_prompt_placeholder)) },
-                    shape = RoundedCornerShape(12.dp),
-                    minLines = 4,
-                    maxLines = 10,
-                    colors = settingsFieldColors()
-                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = toolConfirmMode == "ask",
+                        onClick = { toolConfirmMode = "ask"; markChanged() },
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    ) {
+                        Text(stringResource(R.string.tool_confirm_ask), style = MaterialTheme.typography.labelMedium)
+                    }
+                    SegmentedButton(
+                        selected = toolConfirmMode == "always_allow",
+                        onClick = { toolConfirmMode = "always_allow"; markChanged() },
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    ) {
+                        Text(stringResource(R.string.tool_confirm_always_allow), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
 
-            // Memory section
+            // Language section
             SectionCard(
-                title = stringResource(R.string.section_memory),
-                subtitle = stringResource(R.string.section_memory_subtitle)
+                title = stringResource(R.string.section_language),
+                subtitle = stringResource(R.string.section_language_subtitle)
             ) {
-                OutlinedTextField(
-                    value = memory,
-                    onValueChange = { memory = it; markChanged() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 200.dp, max = 400.dp),
-                    placeholder = { Text(stringResource(R.string.memory_placeholder)) },
-                    shape = RoundedCornerShape(12.dp),
-                    minLines = 8,
-                    colors = settingsFieldColors()
-                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    languageOptions.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = selectedLanguage == option.tag,
+                            onClick = { selectedLanguage = option.tag; markChanged() },
+                            shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
+                        ) {
+                            Text(stringResource(option.labelRes), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
             }
 
             // Unsaved indicator
