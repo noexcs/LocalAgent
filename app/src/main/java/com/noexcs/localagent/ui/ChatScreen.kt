@@ -39,6 +39,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddComment
+import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
@@ -184,7 +186,7 @@ private fun ChatContent(
                 actions = {
                     IconButton(onClick = { viewModel.newConversation() }) {
                         Icon(
-                            Icons.Default.Add,
+                            Icons.Default.AddComment,
                             contentDescription = stringResource(R.string.new_chat),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -369,9 +371,14 @@ private fun AssistantActions(
         modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        AssistantActionButton(stringResource(R.string.copy), onClick = onCopy)
+        AssistantActionButton(icon = {
+            Icon(
+                Icons.Default.CopyAll,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
+        }, onClick = onCopy)
         AssistantActionButton(
-            stringResource(R.string.regenerate),
             icon = {
                 Icon(
                     Icons.Default.Refresh,
@@ -386,7 +393,6 @@ private fun AssistantActions(
 
 @Composable
 private fun AssistantActionButton(
-    text: String,
     icon: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
@@ -395,13 +401,12 @@ private fun AssistantActionButton(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
         modifier = Modifier.height(28.dp),
         shape = RoundedCornerShape(14.dp),
-        border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+        border = ButtonDefaults.outlinedButtonBorder(enabled = false),
     ) {
         if (icon != null) {
             icon()
             Spacer(modifier = Modifier.width(4.dp))
         }
-        Text(text, style = MaterialTheme.typography.labelSmall)
     }
 }
 
