@@ -62,6 +62,7 @@ import ai.koog.prompt.executor.ollama.client.OllamaModels
 import ai.koog.prompt.llm.OpenRouterLLMProvider
 import kotlin.time.Clock
 import  ai.koog.prompt.llm.LLModel
+import android.util.Log
 
 class AgentViewModel(
     context: Context,
@@ -80,21 +81,29 @@ class AgentViewModel(
     private var agent: AIAgent<String, String>? = null
 
     private fun buildAgent(): AIAgent<String, String> {
+
+        Log.d("AgentViewModel", "userSystemPrompt: ${settingsManager.userSystemPrompt}")
+
         val memory = memoryManager.read()
         val systemPrompt = buildString {
-            if (settingsManager.userSystemPrompt.isNotBlank()) {
-                appendLine(settingsManager.userSystemPrompt)
-                appendLine()
-            }
             appendLine("You are a helpful Android assistant with Termux shell access.")
             appendLine("Use tools to execute commands, read/write files, and manage memory.")
+            if (settingsManager.userSystemPrompt.isNotBlank()) {
+                appendLine()
+                appendLine("# User Custom Instruct")
+                appendLine(settingsManager.userSystemPrompt)
+            }
             if (memory.isNotBlank()) {
                 appendLine()
+                appendLine("# Memory")
                 appendLine("<memory>")
                 appendLine(memory)
                 appendLine("</memory>")
             }
         }
+
+
+        Log.d("AgentViewModel", "systemPrompt: $systemPrompt")
 
         // Initialize tools
         TermuxExecuteCommandTool.init(executor)
@@ -153,69 +162,6 @@ class AgentViewModel(
                 chatHistoryProvider = fileChatHistoryProvider
                 windowSize(20)
             }
-            handleEvents {
-//                onToolCallStarting { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call starting: ${eventContext.toolName}\nArgs: ${eventContext.toolArgs.toString()}"))
-//                }
-//                onToolCallFailed { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call failed: ${eventContext.toolName}"))
-//                }
-//                onToolCallCompleted { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Tool call completed: ${eventContext.toolName}\nResult: ${eventContext.toolResult}"))
-//                }
-
-                // Agent lifecycle
-//                onAgentStarting { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent starting: ${eventContext.runId}"))
-//
-//                }
-//                onAgentCompleted { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent completed: ${eventContext.agentId}"))
-//                }
-//                onAgentClosing { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent closing: ${eventContext.agentId}"))
-//                }
-//                onAgentExecutionFailed { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "Agent execution failed: ${eventContext.agentId}"))
-//                }
-
-                // LLM streaming
-//                onLLMStreamingStarting { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming starting: ${eventContext.prompt}"))
-//                }
-//                onLLMStreamingCompleted { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming completed: ${eventContext.prompt}"))
-//                }
-//                onLLMStreamingFailed { eventContext ->
-//                    messages.add(MessageViewModel(role = Role.Tool, content = "LLM streaming failed: ${eventContext.prompt}"))
-//                }
-//                onLLMStreamingFrameReceived { eventContext ->
-//                    when (val frame = eventContext.streamFrame) {
-//                        is StreamFrame.TextDelta -> {
-//                            messages.last().content += frame.text
-//                        }
-//                        is StreamFrame.TextComplete -> {
-//                            messages.last().content += frame.text
-//                        }
-//                        is StreamFrame.ReasoningComplete -> {
-//                            messages.last().content += frame.text
-//                        }
-//                        is StreamFrame.ToolCallComplete -> {
-//                            messages.last().content += frame.content
-//                        }
-//                        is StreamFrame.ReasoningDelta -> {
-//                            messages.last().content += frame.text
-//                        }
-//                        is StreamFrame.ToolCallDelta -> {
-//                            messages.last().content += frame.content
-//                        }
-//                        is StreamFrame.End -> {
-//                            messages.last().content += frame.metaInfo
-//                        }
-//                    }
-//                }
-
-            }
         }
 
     }
@@ -266,6 +212,7 @@ class AgentViewModel(
                 val aIAgentRunSession = agent!!.createSession(sessionId)
 
                 val response = aIAgentRunSession.run(userText)
+//                val response = userText
                 messages.add(MessageViewModel(role = Role.Assistant, content = response))
 
             } catch (e: Exception) {

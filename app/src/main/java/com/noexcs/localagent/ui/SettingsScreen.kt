@@ -1,6 +1,18 @@
 package com.noexcs.localagent.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -8,16 +20,48 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -25,81 +69,34 @@ import androidx.compose.ui.unit.dp
 import com.noexcs.localagent.R
 import com.noexcs.localagent.data.MemoryManager
 import com.noexcs.localagent.data.SettingsManager
+import com.noexcs.localagent.data.getLocalModels
+import com.noexcs.localagent.data.getOnlineModels
+import com.noexcs.localagent.data.getProviders
 import kotlinx.coroutines.launch
-import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
-import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
-import ai.koog.prompt.executor.clients.google.GoogleModels
-import ai.koog.prompt.executor.clients.dashscope.DashscopeModels
-import ai.koog.prompt.executor.clients.mistralai.MistralAIModels
-import ai.koog.prompt.executor.ollama.client.OllamaModels
-import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 
 private data class LanguageOption(val tag: String, val labelRes: Int)
-
 private data class ProviderOption(val name: String, val stringRes: Int)
 
-private val providerOptions = listOf(
-    ProviderOption("DeepSeek", R.string.provider_deepseek),
-    ProviderOption("Anthropic", R.string.provider_anthropic),
-    ProviderOption("OpenAI", R.string.provider_openai),
-    ProviderOption("Google", R.string.provider_google),
-    ProviderOption("Dashscope", R.string.provider_dashscope),
-    ProviderOption("Mistral AI", R.string.provider_mistral),
-    ProviderOption("Ollama", R.string.provider_ollama),
-    ProviderOption("OpenRouter", R.string.provider_openrouter),
-    ProviderOption("Custom", R.string.provider_custom),
-)
+// Provider options from Models.kt
+private val providerOptions = getProviders().map { name ->
+    when (name) {
+        "DeepSeek" -> ProviderOption(name, R.string.provider_deepseek)
+        "Anthropic" -> ProviderOption(name, R.string.provider_anthropic)
+        "OpenAI" -> ProviderOption(name, R.string.provider_openai)
+        "Google" -> ProviderOption(name, R.string.provider_google)
+        "Dashscope" -> ProviderOption(name, R.string.provider_dashscope)
+        "Mistral AI" -> ProviderOption(name, R.string.provider_mistral)
+        "Ollama" -> ProviderOption(name, R.string.provider_ollama)
+        "OpenRouter" -> ProviderOption(name, R.string.provider_openrouter)
+        else -> ProviderOption(name, R.string.provider_custom)
+    }
+}
 
 private val languageOptions = listOf(
     LanguageOption("", R.string.language_system),
     LanguageOption("en", R.string.language_en),
     LanguageOption("zh-Hans", R.string.language_zh_hans),
 )
-
-/**
- * Get available models for a provider
- * Uses model constants from each provider's Models object
- */
-private fun getAvailableModelsForProvider(provider: String): List<Pair<String, Int>> {
-    return when (provider) {
-        "DeepSeek" -> DeepSeekModels.models.map { model ->
-            model.id to 0  // 0 means use model.toString() for display
-        }
-        
-        "Anthropic" -> AnthropicModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "OpenAI" -> OpenAIModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "Google" -> GoogleModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "Dashscope" -> DashscopeModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "Mistral AI" -> MistralAIModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "Ollama" -> OllamaModels.models.map { model ->
-            model.id to 0
-        }
-        
-        "OpenRouter" -> OpenRouterModels.models.map { model ->
-            model.id to 0
-        }
-        
-        else -> DeepSeekModels.models.map { model ->
-            model.id to 0
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +105,7 @@ fun SettingsScreen(
     memoryManager: MemoryManager,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var systemPrompt by remember { mutableStateOf(settingsManager.userSystemPrompt) }
     var memory by remember { mutableStateOf(memoryManager.read()) }
     var providerType by remember { mutableStateOf(settingsManager.providerType) }
@@ -125,6 +123,59 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
 
     val savedMsg = stringResource(R.string.settings_saved)
+
+    var availableModels by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isLoadingModels by remember { mutableStateOf(false) }
+    var modelsLoadError by remember { mutableStateOf<String?>(null) }
+    
+    // Function to load local models (default, no network)
+    fun loadLocalModels() {
+        val localModels = getLocalModels(providerType).map { it.id }
+        availableModels = localModels
+        
+        // Auto-select first model if current is empty
+        if (localModels.isNotEmpty() && model.isEmpty()) {
+            model = localModels.first()
+        }
+    }
+    
+    // Function to refresh models from network
+    fun refreshModelsFromNetwork() {
+        if (apiKey.isBlank() && providerType != "Ollama") {
+            modelsLoadError = "API Key required for network request"
+            return
+        }
+        
+        scope.launch {
+            isLoadingModels = true
+            modelsLoadError = null
+            try {
+                val models = getOnlineModels(context, providerType, apiKey, baseUrl)
+                availableModels = if (models.isEmpty()) {
+                    // Fallback to local models if network returns empty
+                    getLocalModels(providerType).map { it.id }
+                } else {
+                    models.map { it.id }
+                }
+                
+                // Auto-select first model if current is empty
+                if (availableModels.isNotEmpty() && model.isEmpty()) {
+                    model = availableModels.first()
+                }
+            } catch (e: Exception) {
+                modelsLoadError = e.message ?: "Failed to load models"
+                // Fallback to local models on error
+                availableModels = getLocalModels(providerType).map { it.id }
+            } finally {
+                isLoadingModels = false
+            }
+        }
+    }
+    
+    // Load local models initially when provider changes
+    LaunchedEffect(providerType) {
+        loadLocalModels()
+    }
 
     fun save() {
         settingsManager.userSystemPrompt = systemPrompt
@@ -271,7 +322,7 @@ fun SettingsScreen(
                                         "Ollama" -> "http://localhost:11434"
                                         else -> ""
                                     }
-                                    model = getAvailableModelsForProvider(option.name).first().first
+                                    model = ""  // Reset model, will be loaded dynamically by LaunchedEffect
                                     providerExpanded = false
                                     markChanged()
                                 },
@@ -314,75 +365,86 @@ fun SettingsScreen(
                     colors = settingsFieldColors()
                 )
                 
-                // Model dropdown - dynamically populated based on selected provider
-                // Framework for model selection - to be completed with actual model lists
-                val availableModels = getAvailableModelsForProvider(providerType)
-                
-                ExposedDropdownMenuBox(
-                    expanded = modelExpanded,
-                    onExpandedChange = { modelExpanded = !modelExpanded }
+                // Model dropdown with refresh button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = model,
-                        onValueChange = { },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        label = { Text(stringResource(R.string.model_label)) },
-                        placeholder = { Text(availableModels.firstOrNull()?.first ?: "Select model") },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        readOnly = true,
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Select model",
-                                modifier = Modifier.rotate(if (modelExpanded) 180f else 0f)
-                            )
-                        },
-                        colors = settingsFieldColors()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = modelExpanded,
-                        onDismissRequest = { modelExpanded = false }
+                    ExposedDropdownMenuBox(
+                        expanded = modelExpanded && availableModels.isNotEmpty(),
+                        onExpandedChange = { if (availableModels.isNotEmpty()) modelExpanded = !modelExpanded }
                     ) {
-                        availableModels.forEach { (modelId, stringRes) ->
-                            DropdownMenuItem(
-                                text = { 
-                                    // Use model ID directly (stringRes == 0 means use model.toString())
-                                    Text(modelId) 
-                                },
-                                onClick = {
-                                    model = modelId
-                                    modelExpanded = false
-                                    markChanged()
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                            )
+                        OutlinedTextField(
+                            value = model,
+                            onValueChange = { },
+                            modifier = Modifier
+                                .weight(1f)
+                                .menuAnchor(),
+                            label = { Text(stringResource(R.string.model_label)) },
+                            placeholder = { 
+                                when {
+                                    isLoadingModels -> Text("Loading...")
+                                    !modelsLoadError.isNullOrEmpty() -> Text(modelsLoadError!!)
+                                    availableModels.isEmpty() && apiKey.isBlank() && providerType != "Ollama" -> Text("Enter API Key")
+                                    availableModels.isEmpty() -> Text("No models")
+                                    else -> Text(model.ifBlank { "Select model" })
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            readOnly = true,
+                            trailingIcon = {
+                                if (isLoadingModels) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                } else if (availableModels.isNotEmpty()) {
+                                    Icon(
+                                        Icons.Default.KeyboardArrowDown,
+                                        contentDescription = "Select model",
+                                        modifier = Modifier.rotate(if (modelExpanded) 180f else 0f)
+                                    )
+                                }
+                            },
+                            colors = settingsFieldColors()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = modelExpanded,
+                            onDismissRequest = { modelExpanded = false }
+                        ) {
+                            availableModels.forEach { modelId ->
+                                DropdownMenuItem(
+                                    text = { Text(modelId) },
+                                    onClick = {
+                                        model = modelId
+                                        modelExpanded = false
+                                        markChanged()
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
+                            }
                         }
                     }
-                }
-            }
-
-            // Tool confirmation section
-            SectionCard(
-                title = stringResource(R.string.section_tool_confirm),
-                subtitle = stringResource(R.string.section_tool_confirm_subtitle)
-            ) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = toolConfirmMode == "ask",
-                        onClick = { toolConfirmMode = "ask"; markChanged() },
-                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    
+                    // Refresh button
+                    IconButton(
+                        onClick = { refreshModelsFromNetwork() },
+                        modifier = Modifier.size(48.dp),
+                        enabled = !isLoadingModels
                     ) {
-                        Text(stringResource(R.string.tool_confirm_ask), style = MaterialTheme.typography.labelMedium)
-                    }
-                    SegmentedButton(
-                        selected = toolConfirmMode == "always_allow",
-                        onClick = { toolConfirmMode = "always_allow"; markChanged() },
-                        shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    ) {
-                        Text(stringResource(R.string.tool_confirm_always_allow), style = MaterialTheme.typography.labelMedium)
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh models",
+                            tint = if (isLoadingModels) {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            modifier = Modifier.rotate(if (isLoadingModels) 180f else 0f)
+                        )
                     }
                 }
             }
