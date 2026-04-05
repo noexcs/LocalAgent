@@ -553,7 +553,7 @@ private fun ToolResultBubble(content: String) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("\uD83D\uDCCB", style = MaterialTheme.typography.labelSmall)
+            Text("🔧", style = MaterialTheme.typography.labelSmall)
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
