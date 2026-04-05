@@ -79,6 +79,12 @@ class AgentViewModel(
     val messages = mutableStateListOf<MessageViewModel>()
     val isLoading = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
+    
+    // Callback to notify when conversation should be refreshed
+    var onConversationUpdated: (() -> Unit)? = null
+    
+    // Track if the first assistant message has been received in this session
+    private var hasNotifiedFirstResponse = false
 
     private var sessionId: String = UUID.randomUUID().toString()
     private var agent: AIAgent<String, String>? = null
@@ -223,6 +229,12 @@ class AgentViewModel(
                 val response = aIAgentRunSession.run(userText)
 //                val response = userText
                 messages.add(MessageViewModel(role = Role.Assistant, content = response))
+                
+                // Notify only on the first assistant response in this session
+                if (!hasNotifiedFirstResponse) {
+                    onConversationUpdated?.invoke()
+                    hasNotifiedFirstResponse = true
+                }
 
             } catch (e: Exception) {
                 error.value = e.message ?: "Unknown error"
@@ -236,6 +248,7 @@ class AgentViewModel(
         messages.clear()
         agent = null
         sessionId = UUID.randomUUID().toString()
+        hasNotifiedFirstResponse = false
     }
 
     fun newConversation() {
@@ -248,6 +261,8 @@ class AgentViewModel(
             messages.addAll(session.messages.map {
                 MessageViewModel(it.role, it.content)
             })
+            // If loading an existing conversation with messages, mark as already notified
+            hasNotifiedFirstResponse = session.messages.any { it.role == Role.Assistant }
         } else {
             clearMessages()
         }

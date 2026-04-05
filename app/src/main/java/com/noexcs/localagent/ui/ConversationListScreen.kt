@@ -28,7 +28,8 @@ import com.noexcs.localagent.data.Session
 fun ConversationDrawerContent(
     repository: FileChatHistoryProvider,
     onLoad: (String) -> Unit,
-    onNewChat: () -> Unit
+    onNewChat: () -> Unit,
+    refreshTrigger: Int = 0
 ) {
     var conversations by remember { mutableStateOf(repository.listAll()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -41,7 +42,10 @@ fun ConversationDrawerContent(
         conversations = repository.listAll()
     }
 
-    LaunchedEffect(Unit) { refresh() }
+    // Refresh when trigger changes or on initial load
+    LaunchedEffect(refreshTrigger) { 
+        refresh() 
+    }
 
     val filtered = remember(conversations, searchQuery) {
         if (searchQuery.isBlank()) conversations

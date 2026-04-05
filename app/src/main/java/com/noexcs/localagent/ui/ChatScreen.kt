@@ -102,6 +102,14 @@ fun ChatScreen(
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    // Set up callback to refresh conversation list when messages are updated
+    LaunchedEffect(Unit) {
+        viewModel.onConversationUpdated = {
+            refreshTrigger++
+        }
+    }
 
     // Back press closes drawer instead of exiting
     BackHandler(enabled = drawerState.isOpen) {
@@ -120,12 +128,15 @@ fun ChatScreen(
                 onNewChat = {
                     viewModel.newConversation()
                     scope.launch { drawerState.close() }
-                }
+                },
+                refreshTrigger = refreshTrigger
             )
         }
     ) {
         ChatContent(
             viewModel = viewModel,
+            conversationRepository = conversationRepository,
+            refreshTrigger = refreshTrigger,
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onOpenSettings = onOpenSettings,
             onOpenScheduledTasks = onOpenScheduledTasks,
@@ -137,6 +148,8 @@ fun ChatScreen(
 @Composable
 private fun ChatContent(
     viewModel: AgentViewModel,
+    conversationRepository: FileChatHistoryProvider,
+    refreshTrigger: Int,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenScheduledTasks: () -> Unit,
@@ -150,6 +163,11 @@ private fun ChatContent(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val copiedMsg = stringResource(R.string.copied)
+
+    // Refresh conversation list when trigger changes
+    LaunchedEffect(refreshTrigger) {
+        // This will cause the drawer content to recompose with fresh data
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
