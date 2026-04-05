@@ -16,6 +16,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.noexcs.localagent.agent.tools.GetAppInfoTool
+import com.noexcs.localagent.agent.tools.IntentTool
+import com.noexcs.localagent.agent.tools.TermuxDialogTool
 import com.noexcs.localagent.agent.tools.TermuxExecuteCommandTool
 import com.noexcs.localagent.agent.tools.TermuxReadFileTool
 import com.noexcs.localagent.agent.tools.TermuxWriteFileTool
@@ -65,13 +68,13 @@ import  ai.koog.prompt.llm.LLModel
 import android.util.Log
 
 class AgentViewModel(
-    context: Context,
+    private val appContext: Context,
     private val memoryManager: MemoryManager,
     private val settingsManager: SettingsManager,
     private val fileChatHistoryProvider: FileChatHistoryProvider
 ) : ViewModel() {
 
-    private val executor = TermuxExecutor(context.applicationContext)
+    private val executor = TermuxExecutor(appContext.applicationContext)
 
     val messages = mutableStateListOf<MessageViewModel>()
     val isLoading = mutableStateOf(false)
@@ -110,6 +113,9 @@ class AgentViewModel(
         TermuxReadFileTool.init(executor)
         TermuxWriteFileTool.init(executor)
         UpdateMemoryTool.init(memoryManager)
+        GetAppInfoTool.init(appContext.applicationContext)
+        TermuxDialogTool.init(executor)
+        IntentTool.init(appContext.applicationContext)
 
         // Create LLM client based on provider
         val llmClient = when (settingsManager.providerType) {
@@ -156,6 +162,9 @@ class AgentViewModel(
                 tool(TermuxReadFileTool)
                 tool(TermuxWriteFileTool)
                 tool(UpdateMemoryTool)
+                tool(GetAppInfoTool)
+                tool(TermuxDialogTool)
+                tool(IntentTool)
             },
         ) {
             install(ChatMemory) {
