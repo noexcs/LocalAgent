@@ -32,6 +32,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+//import androidx.compose.material3.ExposedDropdownMenuBoxScope.menuAnchor
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,31 +67,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import ai.koog.prompt.llm.LLModel
+import androidx.activity.compose.BackHandler
+//import androidx.compose.material3.ExposedDropdownMenuBoxScope.menuAnchor
+import androidx.compose.material3.MenuAnchorType
 import com.noexcs.localagent.R
 import com.noexcs.localagent.data.MemoryManager
 import com.noexcs.localagent.data.SettingsManager
-import com.noexcs.localagent.data.getLocalModels
+import com.noexcs.localagent.data.getPredefinedProviderModels
 import com.noexcs.localagent.data.getOnlineModels
 import com.noexcs.localagent.data.getProviders
 import kotlinx.coroutines.launch
 
 private data class LanguageOption(val tag: String, val labelRes: Int)
-private data class ProviderOption(val name: String, val stringRes: Int)
-
-// Provider options from Models.kt
-private val providerOptions = getProviders().map { name ->
-    when (name) {
-        "DeepSeek" -> ProviderOption(name, R.string.provider_deepseek)
-        "Anthropic" -> ProviderOption(name, R.string.provider_anthropic)
-        "OpenAI" -> ProviderOption(name, R.string.provider_openai)
-        "Google" -> ProviderOption(name, R.string.provider_google)
-        "Dashscope" -> ProviderOption(name, R.string.provider_dashscope)
-        "Mistral AI" -> ProviderOption(name, R.string.provider_mistral)
-        "Ollama" -> ProviderOption(name, R.string.provider_ollama)
-        "OpenRouter" -> ProviderOption(name, R.string.provider_openrouter)
-        else -> ProviderOption(name, R.string.provider_custom)
-    }
-}
 
 private val languageOptions = listOf(
     LanguageOption("", R.string.language_system),
@@ -113,68 +102,59 @@ fun SettingsScreen(
     var apiKey by remember { mutableStateOf(settingsManager.apiKey) }
     var model by remember { mutableStateOf(settingsManager.model) }
     var selectedLanguage by remember { mutableStateOf(settingsManager.language) }
-    var toolConfirmMode by remember { mutableStateOf(settingsManager.toolConfirmMode) }
     var apiKeyVisible by remember { mutableStateOf(false) }
     var hasUnsavedChanges by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
+
     var providerExpanded by remember { mutableStateOf(false) }
+
     var modelExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     val savedMsg = stringResource(R.string.settings_saved)
 
-    var availableModels by remember { mutableStateOf<List<String>>(emptyList()) }
+    var availableModels by remember { mutableStateOf<List<LLModel>>(emptyList()) }
     var isLoadingModels by remember { mutableStateOf(false) }
     var modelsLoadError by remember { mutableStateOf<String?>(null) }
-    
-    // Function to load local models (default, no network)
-    fun loadLocalModels() {
-        val localModels = getLocalModels(providerType).map { it.id }
-        availableModels = localModels
-        
-        // Auto-select first model if current is empty
-        if (localModels.isNotEmpty() && model.isEmpty()) {
-            model = localModels.first()
-        }
+
+    LaunchedEffect(providerType) {
+        if (providerType != null)
+            availableModels = getPredefinedProviderModels(providerType!!)
     }
-    
+
+    BackHandler(enabled = hasUnsavedChanges) {
+        if (hasUnsavedChanges)
+            showExitDialog = true
+    }
+
     // Function to refresh models from network
     fun refreshModelsFromNetwork() {
-        if (apiKey.isBlank() && providerType != "Ollama") {
-            modelsLoadError = "API Key required for network request"
+        if (providerType == null)
             return
-        }
-        
         scope.launch {
             isLoadingModels = true
             modelsLoadError = null
             try {
-                val models = getOnlineModels(context, providerType, apiKey, baseUrl)
+                val models =
+                    getOnlineModels(context, providerType!!, apiKey!!, baseUrl!!)
                 availableModels = if (models.isEmpty()) {
                     // Fallback to local models if network returns empty
-                    getLocalModels(providerType).map { it.id }
+                    getPredefinedProviderModels(providerType!!).map { it }
                 } else {
-                    models.map { it.id }
+                    models.map { it }
                 }
-                
+
                 // Auto-select first model if current is empty
-                if (availableModels.isNotEmpty() && model.isEmpty()) {
-                    model = availableModels.first()
+                if (availableModels.isNotEmpty() && model == null) {
+                    model = availableModels.first().id
                 }
             } catch (e: Exception) {
                 modelsLoadError = e.message ?: "Failed to load models"
-                // Fallback to local models on error
-                availableModels = getLocalModels(providerType).map { it.id }
             } finally {
                 isLoadingModels = false
             }
         }
-    }
-    
-    // Load local models initially when provider changes
-    LaunchedEffect(providerType) {
-        loadLocalModels()
     }
 
     fun save() {
@@ -184,7 +164,6 @@ fun SettingsScreen(
         settingsManager.apiKey = apiKey
         settingsManager.model = model
         memoryManager.write(memory)
-        settingsManager.toolConfirmMode = toolConfirmMode
         if (selectedLanguage != settingsManager.language) {
             settingsManager.language = selectedLanguage
         }
@@ -197,7 +176,9 @@ fun SettingsScreen(
         }
     }
 
-    fun markChanged() { hasUnsavedChanges = true }
+    fun markChanged() {
+        hasUnsavedChanges = true
+    }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -226,9 +207,16 @@ fun SettingsScreen(
                         modifier = Modifier.padding(end = 8.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.save), style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            stringResource(R.string.save),
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             )
@@ -253,7 +241,7 @@ fun SettingsScreen(
                     onValueChange = { systemPrompt = it; markChanged() },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text(stringResource(R.string.system_prompt_placeholder)) },
-                    shape = RoundedCornerShape(12.dp),
+
                     minLines = 4,
                     maxLines = 10,
                     colors = settingsFieldColors()
@@ -272,7 +260,6 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .heightIn(min = 200.dp, max = 400.dp),
                     placeholder = { Text(stringResource(R.string.memory_placeholder)) },
-                    shape = RoundedCornerShape(12.dp),
                     minLines = 8,
                     colors = settingsFieldColors()
                 )
@@ -287,42 +274,25 @@ fun SettingsScreen(
                 // Provider dropdown
                 ExposedDropdownMenuBox(
                     expanded = providerExpanded,
-                    onExpandedChange = { providerExpanded = !providerExpanded }
+                    onExpandedChange = { providerExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = providerType,
+                        value = providerType?.display ?: "Select Provider",
                         onValueChange = { },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryEditable, true),
                         label = { Text(stringResource(R.string.provider_label)) },
-                        placeholder = { Text("DeepSeek") },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
                         readOnly = true,
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Select provider",
-                                modifier = Modifier.rotate(if (providerExpanded) 180f else 0f)
-                            )
-                        },
-                        colors = settingsFieldColors()
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
+                        colors = ExposedDropdownMenuDefaults.textFieldColors(),
                     )
-                    ExposedDropdownMenu(
-                        expanded = providerExpanded,
-                        onDismissRequest = { providerExpanded = false }
-                    ) {
-                        providerOptions.forEach { option ->
+                    ExposedDropdownMenu(expanded = providerExpanded, onDismissRequest = { providerExpanded = false }) {
+                        getProviders().forEach { provider ->
                             DropdownMenuItem(
-                                text = { Text(stringResource(option.stringRes)) },
+                                text = { Text(text = provider.display) },
                                 onClick = {
-                                    providerType = option.name
-                                    baseUrl = when (option.name) {
-                                        "Ollama" -> "http://localhost:11434"
-                                        else -> ""
-                                    }
-                                    model = ""  // Reset model, will be loaded dynamically by LaunchedEffect
+                                    providerType = provider
                                     providerExpanded = false
                                     markChanged()
                                 },
@@ -331,27 +301,13 @@ fun SettingsScreen(
                         }
                     }
                 }
-                
-                // Only show Base URL field for Ollama provider
-                if (providerType == "Ollama") {
-                    OutlinedTextField(
-                        value = baseUrl,
-                        onValueChange = { baseUrl = it; markChanged() },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.base_url_label)) },
-                        placeholder = { Text("http://localhost:11434") },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
-                    )
-                }
+
                 OutlinedTextField(
-                    value = apiKey,
+                    value = apiKey ?: "",
                     onValueChange = { apiKey = it; markChanged() },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.api_key_label)) },
                     placeholder = { Text("sk-...") },
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -364,7 +320,7 @@ fun SettingsScreen(
                     },
                     colors = settingsFieldColors()
                 )
-                
+
                 // Model dropdown with refresh button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -373,26 +329,15 @@ fun SettingsScreen(
                 ) {
                     ExposedDropdownMenuBox(
                         expanded = modelExpanded && availableModels.isNotEmpty(),
-                        onExpandedChange = { if (availableModels.isNotEmpty()) modelExpanded = !modelExpanded }
+                        onExpandedChange = { modelExpanded = it }
                     ) {
                         OutlinedTextField(
-                            value = model,
+                            value = model?:"",
                             onValueChange = { },
                             modifier = Modifier
-                                .weight(1f)
-                                .menuAnchor(),
+                                .fillMaxWidth(1f)
+                                .menuAnchor(MenuAnchorType.PrimaryEditable, true),
                             label = { Text(stringResource(R.string.model_label)) },
-                            placeholder = { 
-                                when {
-                                    isLoadingModels -> Text("Loading...")
-                                    !modelsLoadError.isNullOrEmpty() -> Text(modelsLoadError!!)
-                                    availableModels.isEmpty() && apiKey.isBlank() && providerType != "Ollama" -> Text("Enter API Key")
-                                    availableModels.isEmpty() -> Text("No models")
-                                    else -> Text(model.ifBlank { "Select model" })
-                                }
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
                             readOnly = true,
                             trailingIcon = {
                                 if (isLoadingModels) {
@@ -415,11 +360,11 @@ fun SettingsScreen(
                             expanded = modelExpanded,
                             onDismissRequest = { modelExpanded = false }
                         ) {
-                            availableModels.forEach { modelId ->
+                            availableModels.forEach { modelItem ->
                                 DropdownMenuItem(
-                                    text = { Text(modelId) },
+                                    text = { Text(modelItem.id) },
                                     onClick = {
-                                        model = modelId
+                                        model = modelItem.id
                                         modelExpanded = false
                                         markChanged()
                                     },
@@ -428,7 +373,7 @@ fun SettingsScreen(
                             }
                         }
                     }
-                    
+
                     // Refresh button
                     IconButton(
                         onClick = { refreshModelsFromNetwork() },
@@ -461,7 +406,10 @@ fun SettingsScreen(
                             onClick = { selectedLanguage = option.tag; markChanged() },
                             shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
                         ) {
-                            Text(stringResource(option.labelRes), style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                stringResource(option.labelRes),
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                     }
                 }
@@ -470,7 +418,7 @@ fun SettingsScreen(
             // Unsaved indicator
             if (hasUnsavedChanges) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
